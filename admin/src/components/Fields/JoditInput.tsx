@@ -448,8 +448,7 @@ const JoditInput: React.FC<JoditInputProps> = ({
   ]);
 
   return (
-    <DesignSystemProvider>
-
+    <>
       {/* Insert Field Labels */}
       <Flex gap={2} paddingBottom={3} wrap="wrap">
         {availableFields.map((field: Block) => {
@@ -536,7 +535,7 @@ const JoditInput: React.FC<JoditInputProps> = ({
             : null
         }
       </Field.Root>
-    </DesignSystemProvider>
+    </>
   );
 };
 
