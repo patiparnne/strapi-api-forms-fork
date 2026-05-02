@@ -14,21 +14,12 @@ import {
 import { Eye, File } from '@strapi/icons';
 import { PLUGIN_ID } from '../pluginId';
 import { getTranslation } from '../utils/getTranslation';
-import {
-  BackButton,
-  Layouts,
-  Page,
-  Pagination,
-  Table,
-
-  useQueryParams,
-} from '@strapi/strapi/admin';
-import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { BackButton, Layouts, Page, Pagination, Table, useQueryParams } from '@strapi/strapi/admin';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
 import submissionRequests from '../api/submission';
 import Cookies from 'js-cookie';
 
 const Submission = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
 
@@ -68,7 +59,7 @@ const Submission = () => {
     return <Page.Loading />;
   }
 
-  const [{ query }, querySet] = useQueryParams<{
+  const [{ query }] = useQueryParams<{
     page?: number;
     pageSize?: number;
   }>({
@@ -80,7 +71,7 @@ const Submission = () => {
     const fetchForms = async () => {
       setIsFetching(true);
       try {
-        const response = await submissionRequests.getSubmissions(token, query);
+        const response = await submissionRequests.getSubmissions(token, query, id);
         setResults(response.data);
         setPagination(response.meta?.pagination);
       } catch (error) {
@@ -93,26 +84,7 @@ const Submission = () => {
     };
 
     fetchForms();
-  }, [navigate]);
-
-  useEffect(() => {
-    const fetchForms = async () => {
-      setIsFetching(true);
-      try {
-        const response = await submissionRequests.getSubmissions(token, query);
-        setResults(response.data);
-        setPagination(response.meta?.pagination);
-      } catch (error) {
-        setResults([]);
-        setPagination(null);
-        setError(error);
-      } finally {
-        setIsFetching(false);
-      }
-    };
-
-    fetchForms();
-  }, [location.search]);
+  }, [id, location.search]);
 
   const tableHeaders: any = [
     '#',

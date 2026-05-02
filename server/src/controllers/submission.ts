@@ -2,6 +2,7 @@
  *  controller
  */
 import { factories } from '@strapi/strapi';
+import { normalizeSubmissionData } from '../functions';
 
 export default factories.createCoreController('plugin::api-forms.submission', ({ strapi }) => ({
   async post(ctx) {
@@ -46,7 +47,7 @@ export default factories.createCoreController('plugin::api-forms.submission', ({
           form: {
             connect: form,
           },
-          submission: JSON.stringify(submission),
+          submission: normalizeSubmissionData(submission),
           files: files.map((file) => file.id), // Store only file IDs
         },
         populate: ['form', 'files'],

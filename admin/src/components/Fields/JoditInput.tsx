@@ -20,7 +20,7 @@ import { Loader } from '@strapi/design-system';
 import { DesignSystemProvider } from '@strapi/design-system';
 
 import { useFetchClient, useStrapiApp } from '@strapi/strapi/admin';
-import { Block } from 'src/context/FormContext';
+import { Block } from '../../context/FormContext';
 import { Flex, Button } from '@strapi/design-system';
 
 export const STRAPI_MEDIA_BUTTON_NAME = 'strapiMedia';

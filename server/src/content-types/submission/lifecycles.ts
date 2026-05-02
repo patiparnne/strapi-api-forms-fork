@@ -1,5 +1,44 @@
 import { errors } from '@strapi/utils';
+import { normalizeSubmissionData } from '../../functions';
 const { ForbiddenError } = errors;
+
+function getConnectedFormReference(formRelation) {
+  const connect = formRelation?.connect;
+  const connectedForm = Array.isArray(connect) ? connect[0] : connect;
+
+  if (typeof connectedForm === 'string') {
+    return { documentId: connectedForm };
+  }
+
+  if (!connectedForm || typeof connectedForm !== 'object') {
+    return {};
+  }
+
+  return {
+    documentId: connectedForm.documentId,
+    id: connectedForm.id,
+  };
+}
+
+async function findConnectedForm(formRelation) {
+  const { documentId, id } = getConnectedFormReference(formRelation);
+
+  if (documentId) {
+    return strapi.documents('plugin::api-forms.form').findOne({
+      documentId,
+      populate: ['notifications'],
+    });
+  }
+
+  if (id) {
+    return strapi.db.query('plugin::api-forms.form').findOne({
+      where: { id },
+      populate: ['notifications'],
+    });
+  }
+
+  return null;
+}
 
 export default {
   /**
@@ -13,8 +52,7 @@ export default {
         throw new ForbiddenError('No submission provided');
       }
 
-      // Parse submission data
-      const submission = JSON.parse(params.data.submission);
+      const submission = normalizeSubmissionData(params.data.submission);
 
       // ✅ Honeypot Spam Protection
       const honeypotField = Object.keys(submission).find((key) => key.includes('honeypot'));
@@ -24,10 +62,12 @@ export default {
       }
 
       // Remove honeypot field
-      delete submission[honeypotField];
+      if (honeypotField) {
+        delete submission[honeypotField];
+      }
 
       // ✅ Update submission data
-      params.data.submission = JSON.stringify(submission);
+      params.data.submission = submission;
     } catch (error) {
       strapi.log.error('beforeCreate error:', error);
       throw new ForbiddenError('Failed to process submission.');
@@ -41,21 +81,11 @@ export default {
     try {
       const { result, params } = event;
 
-      if (!result || !params.data.form || params.data.form.connect.length === 0) {
+      if (!result || !params.data.form) {
         throw new ForbiddenError('No submission found');
       }
 
-      const formId = params.data.form.connect[0].id;
-
-      if (!formId) {
-        throw new ForbiddenError('No form found');
-      }
-
-      // // ✅ Fetch the related form with notifications
-      const form = await strapi.documents('plugin::api-forms.form').findFirst({
-        where: { id: formId },
-        populate: ['notifications'],
-      });
+      const form = await findConnectedForm(params.data.form);
 
       if (!form?.notifications?.length) {
         return;

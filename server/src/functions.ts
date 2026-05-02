@@ -1,4 +1,55 @@
 import { SubmissionType } from '../../admin/src/utils/types';
+import { camelCase } from 'lodash';
+
+function normalizeTemplateKey(key: string): string {
+  return camelCase(key.replace(/\s+/g, ''));
+}
+
+function stringifyTemplateValue(value: any): string {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(stringifyTemplateValue).join(', ');
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function normalizeSubmissionData(submission: any): Record<string, any> {
+  if (typeof submission === 'string') {
+    try {
+      const parsed = JSON.parse(submission);
+      return normalizeSubmissionData(parsed);
+    } catch (error) {
+      return {};
+    }
+  }
+
+  if (!submission || typeof submission !== 'object' || Array.isArray(submission)) {
+    return {};
+  }
+
+  return submission;
+}
+
+function createSubmissionLookup(submission: any): Record<string, any> {
+  const normalizedSubmission = normalizeSubmissionData(submission);
+
+  return Object.keys(normalizedSubmission).reduce(
+    (lookup, key) => {
+      lookup[key] = normalizedSubmission[key];
+      lookup[normalizeTemplateKey(key)] = normalizedSubmission[key];
+      return lookup;
+    },
+    {} as Record<string, any>
+  );
+}
 
 /**
  * Validate email format
@@ -12,18 +63,27 @@ function validateEmail(emails: string): boolean {
  * Retrieve value from submission fields
  */
 function getValueFromSubmissionByKey(key: string, submission: any): string {
-  return submission[key] ?? '-';
+  const lookup = createSubmissionLookup(submission);
+
+  return stringifyTemplateValue(lookup[key] ?? lookup[normalizeTemplateKey(key)]);
 }
 
 /**
  * Replace placeholders in the email template
  */
 function replaceDynamicVariables(message: string, submission: any): string {
-  return Object.keys(submission).reduce((updatedMessage, key) => {
-    const placeholder = `{{${key}}}`;
-    //@ts-ignore
-    return updatedMessage.replaceAll(placeholder, submission[key] ?? '-');
-  }, message);
+  const normalizedSubmission = normalizeSubmissionData(submission);
+  const lookup = createSubmissionLookup(normalizedSubmission);
+
+  return message.replace(/{{\s*([^{}]+?)\s*}}/g, (placeholder, key) => {
+    if (key === 'submission') {
+      return JSON.stringify(normalizedSubmission);
+    }
+
+    const value = lookup[key] ?? lookup[normalizeTemplateKey(key)];
+
+    return value === undefined ? placeholder : stringifyTemplateValue(value);
+  });
 }
 
 /**
@@ -54,4 +114,10 @@ async function getFiles(submission: SubmissionType, provider: string): Promise<a
   ).then((files) => files.filter(Boolean)); // Remove failed file fetches
 }
 
-export { validateEmail, getValueFromSubmissionByKey, replaceDynamicVariables, getFiles };
+export {
+  validateEmail,
+  getValueFromSubmissionByKey,
+  replaceDynamicVariables,
+  getFiles,
+  normalizeSubmissionData,
+};
