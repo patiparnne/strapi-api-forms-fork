@@ -3,12 +3,12 @@
   "collectionName": "notification",
   "info": {
     "singularName": "notification",
-    "pluralName": "notificatons",
-    "displayName": "Email notifications"
+    "pluralName": "notifications",
+    "displayName": "Form | Notification"
   },
   "pluginOptions": {
     "content-manager": {
-      "visible": false
+      "visible": true
     },
     "content-type-builder": {
       "visible": true

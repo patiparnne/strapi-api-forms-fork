@@ -10,11 +10,10 @@ export default {
       icon: PluginIcon,
       intlLabel: {
         id: `${PLUGIN_ID}.plugin.name`,
-        defaultMessage: PLUGIN_ID,
+        defaultMessage: 'Forms',
       },
       Component: async () => {
         const { App } = await import('./pages/App');
-
         return App;
       },
     });
@@ -66,7 +65,7 @@ export default {
       id: PLUGIN_ID,
       initializer: Initializer,
       isReady: false,
-      name: PLUGIN_ID,
+      name: 'API Forms',
     });
   },
 

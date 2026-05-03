@@ -4,7 +4,7 @@
   "info": {
     "singularName": "form",
     "pluralName": "forms",
-    "displayName": "form"
+    "displayName": "Form"
   },
   "pluginOptions": {
     "content-manager": {
