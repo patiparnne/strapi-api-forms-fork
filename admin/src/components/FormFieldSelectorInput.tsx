@@ -241,109 +241,107 @@ const FormFieldSelectorInput: React.FC<FormFieldSelectorInputProps> = ({
   };
 
   return (
-    <DesignSystemProvider>
-      <Field.Root error={error} required={required} name={name}>
-        <Field.Label>{getFieldLabel()}</Field.Label>
+    <Field.Root error={error} required={required} name={name}>
+      <Field.Label>{getFieldLabel()}</Field.Label>
 
-        {/* Form Selector */}
-        <SingleSelect
-          value={selectedFormId || undefined}
-          onChange={(value: string | number) => {
-            handleFormChange(value as string);
-          }}
-          onClear={() => {
-            setSelectedFormId('');
-            setVisibleFields([]);
-            onChange({
-              target: {
-                name,
-                value: { formId: '', visibleFields: [] },
-                type: 'json',
-              },
-            });
-          }}
-          disabled={disabled || loading}
-          placeholder={loading ? 'Loading forms...' : 'Select a form...'}
-        >
-          {!required && (
-            <SingleSelectOption value="">
-              <Typography textColor="neutral400">-</Typography>
-            </SingleSelectOption>
-          )}
-          {forms.map((form) => (
-            <SingleSelectOption key={form.documentId} value={form.documentId}>
-              {form.title}
-            </SingleSelectOption>
-          ))}
-        </SingleSelect>
-        
-        {description || hint || fieldSchema?.description || metadatas?.description}
+      {/* Form Selector */}
+      <SingleSelect
+        value={selectedFormId || undefined}
+        onChange={(value: string | number) => {
+          handleFormChange(value as string);
+        }}
+        onClear={() => {
+          setSelectedFormId('');
+          setVisibleFields([]);
+          onChange({
+            target: {
+              name,
+              value: { formId: '', visibleFields: [] },
+              type: 'json',
+            },
+          });
+        }}
+        disabled={disabled || loading}
+        placeholder={loading ? 'Loading forms...' : 'Select a form...'}
+      >
+        {!required && (
+          <SingleSelectOption value="">
+            <Typography textColor="neutral400">-</Typography>
+          </SingleSelectOption>
+        )}
+        {forms.map((form) => (
+          <SingleSelectOption key={form.documentId} value={form.documentId}>
+            {form.title}
+          </SingleSelectOption>
+        ))}
+      </SingleSelect>
 
-        <Field.Error />
+      {description || hint || fieldSchema?.description || metadatas?.description}
 
-        {/* Field Visibility Checkboxes */}
-        {selectedFormId && formFields.length > 0 && (
-          <Box marginTop={4}>
-            <Typography variant="sigma" textColor="neutral600" marginBottom={2}>
-              Visible Fields
-            </Typography>
-            <Field.Hint>
-              Select which fields to display in this document's form. All fields are selected by default.
-            </Field.Hint>
-            <Flex direction="column" gap={2}>
-              {formFields.map((field) => (
-                <Box
-                  key={field.name}
-                  padding={2}
-                  background="neutral0"
-                  borderRadius="4px"
-                  borderWidth="1px"
-                  borderStyle="solid"
-                  borderColor="neutral200"
-                  width="100%"
+      <Field.Error />
+
+      {/* Field Visibility Checkboxes */}
+      {selectedFormId && formFields.length > 0 && (
+        <Box marginTop={4}>
+          <Typography variant="sigma" textColor="neutral600" marginBottom={2}>
+            Visible Fields
+          </Typography>
+          <Field.Hint>
+            Select which fields to display in this document's form. All fields are selected by default.
+          </Field.Hint>
+          <Flex direction="column" gap={2}>
+            {formFields.map((field) => (
+              <Box
+                key={field.name}
+                padding={2}
+                background="neutral0"
+                borderRadius="4px"
+                borderWidth="1px"
+                borderStyle="solid"
+                borderColor="neutral200"
+                width="100%"
+              >
+                <Checkbox
+                  name={field.name}
+                  checked={visibleFields.includes(field.name)}
+                  onCheckedChange={() => handleFieldToggle(field.name)}
+                  disabled={disabled || field.required}
                 >
-                  <Checkbox
-                    name={field.name}
-                    checked={visibleFields.includes(field.name)}
-                    onCheckedChange={() => handleFieldToggle(field.name)}
-                    disabled={disabled || field.required}
-                  >
-                    <Flex direction="column" gap={1} width="100%" style={{ alignItems: 'flex-start' }}>
-                      <Typography fontWeight="bold">
-                        {field.label}
-                      </Typography>
-                      <Typography variant="pi" textColor="neutral600">
-                        {field.name} • {field.type}
-                        {field.required && (
-                          <span style={{ color: '#d02b20', marginLeft: '4px' }}>
-                            • Required field (must be visible)
-                          </span>
-                        )}
-                      </Typography>
-                    </Flex>
-                  </Checkbox>
-                </Box>
-              ))}
-            </Flex>
+                  <Flex direction="column" gap={1} width="100%" style={{ alignItems: 'flex-start' }}>
+                    <Typography fontWeight="bold">
+                      {field.label}
+                    </Typography>
+                    <Typography variant="pi" textColor="neutral600">
+                      {field.name} • {field.type}
+                      {field.required && (
+                        <span style={{ color: '#d02b20', marginLeft: '4px' }}>
+                          • Required field (must be visible)
+                        </span>
+                      )}
+                    </Typography>
+                  </Flex>
+                </Checkbox>
+              </Box>
+            ))}
+          </Flex>
 
-            <Box marginTop={2} padding={2} background={visibleFields.length > 0 ? "success100" : "neutral150"} hasRadius>
-              <Typography variant="pi" textColor={visibleFields.length > 0 ? "success700" : "neutral600"}>
-                {visibleFields.length > 0 ? '✓' : '⚠'} {visibleFields.length} of {formFields.length} field{formFields.length !== 1 ? 's' : ''} will be displayed
-                {formFields.some(f => f.required) && ` (${formFields.filter(f => f.required).length} required)`}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {selectedFormId && formFields.length === 0 && !loading && (
-          <Box marginTop={4}>
-            <Typography textColor="neutral600" fontStyle="italic">
-              This form has no fields
+          <Box marginTop={2} padding={2} background={visibleFields.length > 0 ? "success100" : "neutral150"} hasRadius>
+            <Typography variant="pi" textColor={visibleFields.length > 0 ? "success700" : "neutral600"}>
+              {visibleFields.length > 0 ? '✓' : '⚠'} {visibleFields.length} of {formFields.length} field{formFields.length !== 1 ? 's' : ''} will be displayed
+              {formFields.some(f => f.required) && ` (${formFields.filter(f => f.required).length} required)`}
             </Typography>
           </Box>
-        )}
-      </Field.Root>
-    </DesignSystemProvider>
+        </Box>
+      )}
+
+      {selectedFormId && formFields.length === 0 && !loading && (
+        <Box marginTop={4}>
+          <Typography textColor="neutral600" fontStyle="italic">
+            This form has no fields
+          </Typography>
+        </Box>
+      )}
+    </Field.Root>
   );
 };
 
