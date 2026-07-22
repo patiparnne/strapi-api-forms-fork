@@ -3,17 +3,41 @@
  */
 import { factories } from '@strapi/strapi';
 import { normalizeSubmissionData } from '../functions';
+import { assertUploadFolderExists, getUploadConfig, validateUploads } from '../upload-validation';
 
 export default factories.createCoreController('plugin::api-forms.submission', ({ strapi }) => ({
+  async find(ctx) {
+    ctx.query = {
+      ...ctx.query,
+      populate: {
+        files: true,
+      },
+    };
+
+    const response = await super.find(ctx);
+    const fileService = strapi.plugin('upload').service('file');
+
+    response.data = await Promise.all(
+      response.data.map(async (submission) => ({
+        ...submission,
+        files: await Promise.all(
+          (submission.files || []).map((file) => fileService.signFileUrls(file))
+        ),
+      }))
+    );
+
+    return response;
+  },
+
   async post(ctx) {
+    let uploadedFiles: any[] = [];
+
     try {
       const { form, submission } = ctx.request.body;
 
       if (!form) {
         return ctx.badRequest('No data provided');
       }
-
-      const files = [];
 
       if (!submission) {
         return ctx.badRequest('Invalid submission data');
@@ -27,18 +51,48 @@ export default factories.createCoreController('plugin::api-forms.submission', ({
         return ctx.badRequest('Form not found');
       }
 
-      // Handle Multiple File Uploads (Strapi 5 format)
-      if (ctx.request.files) {
-        const uploadedFiles = await strapi
-          .plugin('upload')
-          .service('upload')
-          .upload({
-            data: {}, // Optional metadata
-            files: Object.values(ctx.request.files).flat(), // Ensure it's an array
-          });
+      const uploadConfig = getUploadConfig(strapi);
+      const { uploads, errors } = await validateUploads(
+        strapiForm,
+        ctx.request.files as Record<string, unknown> | undefined,
+        uploadConfig
+      );
 
-        if (uploadedFiles?.length > 0) {
-          files.push(...uploadedFiles); // Store the uploaded file references
+      if (errors.length > 0) {
+        return ctx.badRequest('Invalid uploaded files', { errors });
+      }
+
+      await assertUploadFolderExists(strapi, uploadConfig.folderId);
+
+      const normalizedSubmission = normalizeSubmissionData(submission);
+      const flattenedFiles = uploads.flatMap((upload) => upload.files);
+      const fileInfo = uploads.flatMap((upload) =>
+        upload.files.map((file) => ({
+          name: file.originalFilename || undefined,
+          caption: upload.field?.label || upload.fieldName,
+          alternativeText: file.originalFilename || undefined,
+          folder: uploadConfig.folderId,
+        }))
+      );
+
+      for (const upload of uploads) {
+        if (upload.field) {
+          normalizedSubmission[upload.field.label] = upload.files.map(
+            (file) => file.originalFilename || 'unnamed-file'
+          );
+        }
+      }
+
+      if (flattenedFiles.length > 0) {
+        for (const [index, file] of flattenedFiles.entries()) {
+          const createdFiles = await strapi
+            .plugin('upload')
+            .service('upload')
+            .upload({
+              data: { fileInfo: fileInfo[index] },
+              files: file,
+            });
+          uploadedFiles.push(...createdFiles);
         }
       }
 
@@ -47,14 +101,21 @@ export default factories.createCoreController('plugin::api-forms.submission', ({
           form: {
             connect: form,
           },
-          submission: normalizeSubmissionData(submission),
-          files: files.map((file) => file.id), // Store only file IDs
+          submission: normalizedSubmission,
+          files: uploadedFiles.map((file) => file.id),
         },
         populate: ['form', 'files'],
       });
     } catch (error) {
+      if (uploadedFiles.length > 0) {
+        await Promise.allSettled(
+          uploadedFiles.map((file) => strapi.plugin('upload').service('upload').remove(file))
+        );
+      }
+
       strapi.log.error('Submission error:', error);
-      return ctx.internalServerError(JSON.stringify(error.message, error.stack));
+      const message = error instanceof Error ? error.message : 'Unknown submission error';
+      return ctx.internalServerError(message);
     }
   },
 

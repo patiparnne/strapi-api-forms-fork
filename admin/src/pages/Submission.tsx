@@ -241,6 +241,27 @@ const Submission = () => {
                       </Box>
                     </Box>
                   )}
+                  {selectedSubmission?.files?.length > 0 && (
+                    <Box paddingTop={4}>
+                      <Typography variant="delta" fontWeight="bold">
+                        Attachments
+                      </Typography>
+                      <Flex direction="column" gap={2} alignItems="flex-start" paddingTop={3}>
+                        {selectedSubmission.files.map((file) => (
+                          <a
+                            key={file.id || file.documentId || file.url}
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={file.name}
+                          >
+                            {file.caption ? `${file.caption}: ` : ''}
+                            {file.name}
+                          </a>
+                        ))}
+                      </Flex>
+                    </Box>
+                  )}
                 </Modal.Body>
                 <Modal.Footer>
                   <Modal.Close>
